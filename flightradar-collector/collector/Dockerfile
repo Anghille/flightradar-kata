@@ -20,7 +20,7 @@ RUN rm ./requirements.txt
 # get python collector script
 COPY collector.py ./
 
-RUN ln -sf /dev/stdout /input/airlines.log
+RUN ln -sf /dev/stdout /input/flight_data.json
 
 # Execute python collector
 ENTRYPOINT ["python3", "./collector.py"]
