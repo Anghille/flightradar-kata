@@ -105,6 +105,8 @@ services:
       KMAGIC_CONFIG_STORE_TYPE: "file"
       KMAGIC_CONFIG_STORE_CONNECTION: "Data Source=/config/KafkaMagicConfig.db;"
       KMAGIC_CONFIG_ENCRYPTION_KEY: "iwoikg908230-2-0*(^*(@23g2)(&2h"
+      KMAGIC_ALLOW_TOPIC_DELETE: "true"
+      KMAGIC_ALLOW_SCHEMA_DELETE: "true"
     depends_on:
       - cp-broker
       - cp-schema-registry
