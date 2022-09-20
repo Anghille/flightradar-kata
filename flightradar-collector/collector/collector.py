@@ -53,6 +53,29 @@ def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> st
     else:
         return "N/A"
 
+def get_airport(airport_iata: str, airports: dict[dict]) -> dict:
+    """
+    Return None if the airport is not found in the 
+    FlightRadar24 snapshot
+
+    parameters:
+    -------------
+    airport_iata; str
+      the airtport iata code which consist of 3 characters
+
+    aiports: dict[dict]
+      dict of airports and their coordinate, name and altitude
+
+    return:
+    -------
+    airports[key]: dict|str
+      Airports data encapsulated as a dict, such as longitude, latitude,
+      altitude, name...
+      
+    """
+    if airport_iata in airports.keys():
+        return airports[airport_iata]
+    return "N/A"
 
 def extract_airports() -> dict[dict]:
     """
