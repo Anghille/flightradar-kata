@@ -1,0 +1,18 @@
+version: "3.7"
+networks:
+  kafka-logstash-spark-collector:
+    external: true
+
+services:
+  collector:
+    container_name: collector
+    image: anghille/test
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - ./collector/input/airlines.log:/input/airlines.log
+      - ./collector/input/zones.log:/input/zones.log
+      - ./collector/input/flights.log:/input/flights.log
+      - ./collector/input/airports.log:/input/airports.log
+    networks:
+      - kafka-logstash-spark-collector
