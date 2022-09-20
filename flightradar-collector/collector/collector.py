@@ -114,7 +114,7 @@ def get_flight_enriched_data():
 
     # Get airlines and airports json-like data
     airlines = extract_airlines()
-    airports = extract_aiports()
+    airports = extract_airports()
 
     return {x.id:{"aircraft_code":x.aircraft_code, 
                   "airline_iata":x.airline_iata,
