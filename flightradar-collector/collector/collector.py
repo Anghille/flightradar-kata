@@ -47,13 +47,13 @@ def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> st
       correctly identify the airline
     """
     if airline_icao in airlines.keys():
-        return airline_icao
+        return airlines[airline_icao]
     elif airline_iata in airlines.keys():
-        return airline_iata
+        return airlines[airline_iata]
     else:
         return "N/A"
 
-def get_airport(airport_iata: str, airports: dict[dict]) -> dict:
+def get_airport_data(airport_iata: str, airports: dict[dict]) -> dict:
     """
     Return None if the airport is not found in the 
     FlightRadar24 snapshot
@@ -144,10 +144,10 @@ def get_flight_enriched_data():
 
     return {x.id:{"aircraft_code":x.aircraft_code, 
                   "airline_iata":x.airline_iata,
-                  "airline_name": airlines[get_airline_name(x.airline_iata, x.airline_icao, airlines)],
+                  "airline_name": get_airline_name(x.airline_iata, x.airline_icao, airlines),
                   "callsign":x.callsign,
-                  "destination_airport_iata":airports[x.destination_airport_iata],
-                  "origin_airport_iata":airports[x.origin_airport_iata],
+                  "destination_airport_iata":get_airport_data(x.destination_airport_iata, airports),
+                  "origin_airport_iata":get_airport_data(x.origin_airport_iata, airports),
                   "latitude": x.latitude,
                   "longitude":x.longitude,
                   "on_ground":x.on_ground,
