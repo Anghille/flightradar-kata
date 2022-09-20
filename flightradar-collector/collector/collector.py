@@ -1,5 +1,6 @@
 from FlightRadar24.api import FlightRadar24API, Flight
 from time import sleep
+import json
 
 
 FR_API = FlightRadar24API()
