@@ -48,7 +48,10 @@ def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> st
     """
     if airline_icao in airlines.keys():
         return airline_icao
-    return airline_iata
+    elif airline_iata in airlines.keys():
+        return airline_iata
+    else:
+        return "N/A"
 
 
 def extract_airports() -> dict[dict]:
