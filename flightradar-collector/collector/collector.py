@@ -1,6 +1,9 @@
 from FlightRadar24.api import FlightRadar24API, Flight
+from datetime import datetime
 from time import sleep
 import json
+
+
 
 
 FR_API = FlightRadar24API()
@@ -21,7 +24,7 @@ def write_file(data: dict[dict]) -> None:
     --------
     None
     """
-    with open(f"/input/flight_data.json", "w") as f:
+    with open(f"/input/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S_%f')}.json", "w") as f:
          json.dump(data, f)
 
 
