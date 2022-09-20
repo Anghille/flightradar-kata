@@ -2,14 +2,14 @@ from FlightRadar24.api import FlightRadar24API, Flight
 from time import sleep
 
 
-def write_file(data: Dict[Dict]) -> None:
+def write_file(data: dict[dict]) -> None:
     """ 
     Write a dict of dict as a Json file to the path /input
 
     parameter:
     ---------
 
-    data: Dict[Dict]
+    data: dict[dict]
       The dictionnary containing all informations for each flight, the flight
       id beeing the primary key of the dict
 
@@ -48,7 +48,7 @@ def get_airline_name(airline_iata: str, airline_icao: str) -> str:
     return airline_iata
 
 
-def extract_airports() -> Dict[Dict]:
+def extract_airports() -> dict[dict]:
     """
     Extract a snapshot of all the airports identified by Flightradar24
 
@@ -59,7 +59,7 @@ def extract_airports() -> Dict[Dict]:
     return:
     -------
 
-    airports: Dict[Dict]
+    airports: dict[dict]
       A json-like formated data containing airports name, latitude, longitude, iata code,
       country and altitude. Airport iata code is used as primary key
     """
@@ -68,7 +68,7 @@ def extract_airports() -> Dict[Dict]:
     return airports
 
 
-def extract_airlines() -> Dict:
+def extract_airlines() -> dict:
     """
     Extract a snapshot of all the airlines identified by Flightradar24
 
@@ -79,7 +79,7 @@ def extract_airlines() -> Dict:
     return:
     -------
 
-    airlines: Dict
+    airlines: dict
       A json-like formated data containing airlines name and icao code
       the icao code is used as the primary key
     """
@@ -100,7 +100,7 @@ def get_flight_enriched_data():
     return:
     -----------
     
-    data: Dict[Dict]
+    data: dict[dict]
        Flights data enriched with airport name, latitude, longitude...
        and airline name
     """
