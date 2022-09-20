@@ -10,6 +10,6 @@ services:
     pull_policy: always
     restart: unless-stopped
     volumes:
-      - ./collector/input/flight_data.json:/input/flight_data.json
+      - ./collector/input/:/input/
     networks:
       - kafka-logstash-spark-collector
