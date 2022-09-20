@@ -10,7 +10,8 @@ RUN python3 -m ensurepip
 
 # Create file where data is set
 RUN mkdir /input
-WORKDIR /input
+RUN mkdir /collector
+WORKDIR /collector
 
 # Install python dependencies
 COPY ./requirements.txt ./requirements.txt
@@ -19,8 +20,6 @@ RUN rm ./requirements.txt
 
 # get python collector script
 COPY collector.py ./
-
-RUN ln -sf /dev/stdout /input/flight_data.json
 
 # Execute python collector
 ENTRYPOINT ["python3", "./collector.py"]
