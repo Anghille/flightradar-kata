@@ -88,9 +88,21 @@ def extract_airlines() -> Dict:
     return airlines
 
 
-def main():
+def get_flight_enriched_data():
     """
-        
+    Extract flights data from FlightRadar24 API and 
+    enrich data with airline and airport data
+
+    parameters:
+    -----------
+    None
+
+    return:
+    -----------
+    
+    data: Dict[Dict]
+       Flights data enriched with airport name, latitude, longitude...
+       and airline name
     """
     fr_api = FlightRadar24API()
 
@@ -98,13 +110,33 @@ def main():
     # Contains all flight informations
     flights = fr_api.get_flights()
 
+    # Get airlines and airports json-like data
+    airlines = extract_airlines()
+    airports = extract_aiports()
 
+    return {x.id:{"aircraft_code":x.aircraft_code, 
+                  "airline_iata":x.airline_iata,
+                  "airline_name": airlines[get_airport_name(x.airline_iata, x.airline_icao)],
+                  "callsign":x.callsign,
+                  "destination_airport_iata":airports[x.destination_airport_iata],
+                  "origin_airport_iata":airports[x.origin_airport_iata],
+                  "latitude": x.latitude,
+                  "longitude":x.longitude,
+                  "on_ground":x.on_ground,
+                  "time":x.time} for x in flights}
 
+def main():
+    """
+    Execute the main get_flight_enriched_data as well as write
+    data to /input/flight_data.json format
+    """
+    data = get_flight_enriched_data()
+    write_file(data)
 
 
     
 if __name__ == "__main__":
     while True:
         main()
-        sleep(1)
+        sleep(5)
 
