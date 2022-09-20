@@ -118,7 +118,7 @@ def get_flight_enriched_data():
 
     return {x.id:{"aircraft_code":x.aircraft_code, 
                   "airline_iata":x.airline_iata,
-                  "airline_name": airlines[get_airline_name(x.airline_iata, x.airline_icao)],
+                  "airline_name": airlines[get_airline_name(x.airline_iata, x.airline_icao, airlines)],
                   "callsign":x.callsign,
                   "destination_airport_iata":airports[x.destination_airport_iata],
                   "origin_airport_iata":airports[x.origin_airport_iata],
