@@ -21,7 +21,7 @@ def write_file(data: Dict[Dict]) -> None:
          json.dump(data, f)
 
 
-def get_airport_name(airline_iata: str, airline_icao: str) -> str:
+def get_airline_name(airline_iata: str, airline_icao: str) -> str:
     """
     Return the icao or the iata flight airline code, depending of the 
     airline code returned by the api
