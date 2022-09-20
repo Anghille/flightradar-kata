@@ -97,7 +97,7 @@ def extract_airports() -> dict[dict]:
       country and altitude. Airport iata code is used as primary key
     """
     airports = {x["iata"]:x for x in FR_API.get_airports()}
-    airports["N/A"] = None
+    airports["N/A"] = "N/A"
     return airports
 
 
@@ -117,7 +117,7 @@ def extract_airlines() -> dict:
       the icao code is used as the primary key
     """
     airlines = {x["ICAO"]:x["Name"] for x in FR_API.get_airlines()}
-    airlines["N/A"] = None
+    airlines["N/A"] = "N/A"
     return airlines
 
 
