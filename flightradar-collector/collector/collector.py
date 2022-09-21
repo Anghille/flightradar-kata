@@ -25,7 +25,7 @@ def write_file(data: dict[dict]) -> None:
     None
     """
     with open(f"/input/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S')}.json", "w") as f:
-        json.dump(str(data).replace("N/A", "Null").replace("\'", "\""), f)
+        json.dump(data, f)
 
 def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> str:
     """
