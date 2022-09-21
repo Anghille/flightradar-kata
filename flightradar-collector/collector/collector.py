@@ -25,8 +25,7 @@ def write_file(data: dict[dict]) -> None:
     None
     """
     with open(f"/input/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S')}.json", "w") as f:
-        for line in data:
-            f.write(str(line).replace("N/A", None).replace("\'", "\"")+"\n")
+        json.dump(str(data).replace("N/A", None).replace("\'", "\""), f)
 
 def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> str:
     """
@@ -146,17 +145,16 @@ def get_flight_enriched_data():
     airlines = extract_airlines()
     airports = extract_airports()
 
-    return [{"aircraft_id":x.id,
-             "aircraft_code":x.aircraft_code, 
-             "airline_iata":x.airline_iata,
-             "airline_name": get_airline_name(x.airline_iata, x.airline_icao, airlines),
-             "callsign":x.callsign,
-             "destination_airport_iata":get_airport_data(x.destination_airport_iata, airports),
-             "origin_airport_iata":get_airport_data(x.origin_airport_iata, airports),
-             "latitude": x.latitude,
-             "longitude":x.longitude,
-             "on_ground":x.on_ground,
-             "time":x.time} for x in flights]
+    return {x.id:{"aircraft_code":x.aircraft_code, 
+                  "airline_iata":x.airline_iata,
+                  "airline_name": get_airline_name(x.airline_iata, x.airline_icao, airlines),
+                  "callsign":x.callsign,
+                  "destination_airport_iata":get_airport_data(x.destination_airport_iata, airports),
+                  "origin_airport_iata":get_airport_data(x.origin_airport_iata, airports),
+                  "latitude": x.latitude,
+                  "longitude":x.longitude,
+                  "on_ground":x.on_ground,
+                  "time":x.time} for x in flights}
 
 def main():
     """
