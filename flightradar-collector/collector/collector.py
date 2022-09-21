@@ -24,7 +24,7 @@ def write_file(data: dict[dict]) -> None:
     --------
     None
     """
-    with open(f"C:/users/pierr/desktop/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S')}.json", "w") as f:
+    with open(f"/input/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S')}.json", "w") as f:
         for line in data:
             f.write(str(line).replace("N/A", "null")+"\n")
 
