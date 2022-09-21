@@ -26,7 +26,7 @@ def write_file(data: dict[dict]) -> None:
     """
     with open(f"/input/flight_data_{datetime.strftime(datetime.now(), '%Y-%m-%d_%H%M%S')}.json", "w") as f:
         for line in data:
-            f.write(str(line).replace("N/A", "null").replace("\'", "\"")+"\n")
+            f.write(str(line).replace("N/A", None).replace("\'", "\"")+"\n")
 
 def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> str:
     """
@@ -55,7 +55,7 @@ def get_airline_name(airline_iata: str, airline_icao: str, airlines: dict) -> st
     elif airline_iata in airlines.keys():
         return airlines[airline_iata]
     else:
-        return "null"
+        return None
 
 def get_airport_data(airport_iata: str, airports: dict[dict]) -> dict:
     """
@@ -79,7 +79,7 @@ def get_airport_data(airport_iata: str, airports: dict[dict]) -> dict:
     """
     if airport_iata in airports.keys():
         return airports[airport_iata]
-    return "null"
+    return None
 
 def extract_airports() -> dict[dict]:
     """
@@ -97,7 +97,7 @@ def extract_airports() -> dict[dict]:
       country and altitude. Airport iata code is used as primary key
     """
     airports = {x["iata"]:x for x in FR_API.get_airports()}
-    airports["N/A"] = "null"
+    airports["N/A"] = None
     return airports
 
 
@@ -117,7 +117,7 @@ def extract_airlines() -> dict:
       the icao code is used as the primary key
     """
     airlines = {x["ICAO"]:x["Name"] for x in FR_API.get_airlines()}
-    airlines["N/A"] = "null"
+    airlines["N/A"] = None
     return airlines
 
 
