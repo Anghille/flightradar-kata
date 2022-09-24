@@ -7,6 +7,7 @@ services:
   cp-zookeeper:
     image: confluentinc/cp-zookeeper
     hostname: zookeeper
+    restart: unless-stopped
     container_name: zookeeper
     ports:
     - "2181:2181"
@@ -19,6 +20,7 @@ services:
   cp-broker:
     image: confluentinc/cp-kafka:latest
     hostname: broker
+    restart: unless-stopped
     container_name: broker
     depends_on:
     - cp-zookeeper
@@ -44,6 +46,7 @@ services:
   cp-schema-registry:
     image: confluentinc/cp-schema-registry
     hostname: schema-registry
+    restart: unless-stopped
     container_name: schema-registry
     depends_on:
     - cp-zookeeper
@@ -59,7 +62,11 @@ services:
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.4.2
     container_name: filebeat
+    restart: unless-stopped
     user: root
+    depends_on:
+      - cp-zookeeper
+      - cp-broker
     networks:
       - kafka-logstash-spark-collector
     environment:
@@ -72,6 +79,7 @@ services:
   magic:
     image: digitsy/kafka-magic
     container_name: kafka-magic
+    restart: unless-stopped
     ports:
       - "20980:80"
     volumes:
@@ -84,6 +92,7 @@ services:
       KMAGIC_ALLOW_SCHEMA_DELETE: "true"
     depends_on:
       - cp-broker
+      - cp-zookeeper
       - cp-schema-registry
     networks:
       - kafka-logstash-spark-collector
