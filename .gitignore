@@ -2,6 +2,7 @@
 /flightradar-collector/collector/input/
 /flightradar-streaming/data/
 /flightradar-streaming/kafka-magic-conf/
+/flightradar-batch/minio-data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

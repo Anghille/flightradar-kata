@@ -25,7 +25,14 @@ spark = SparkSession \
         .config("spark.master", SPARK_MASTER_URL) \
         .config("spark.driver/bindAddress", "0.0.0.0") \
         .config("spark.driver.host", SPARK_DRIVER_HOST) \
+        .config("spark.sql.streaming.checkpointLocation", "s3a://spark-checkpoint/") \
         .config("spark.submit.deployMode", "client") \
+        .config("spark.hadoop.fs.s3a.path.style.access", "true")\
+        .config("fs.s3a.connection.ssl.enabled", "false") \
+        .config("spark.hadoop.fs.s3a.access.key", "minio-root") \
+        .config("spark.hadoop.fs.s3a.secret.key", "MyStr0n8Passw04rd*") \
+        .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
         .getOrCreate()
 sc = spark.sparkContext
 
@@ -87,7 +94,7 @@ flights = (spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "broker:29092") \
         .option("subscribe", "flights") \
-        .option("startingOffsets", "latest") \
+        .option("startingOffsets", "earliest") \
         .option("header", "false") \
         .load() \
         .selectExpr("CAST(value AS STRING) as value", "CAST(timestamp AS TIMESTAMP) as ts") \
@@ -130,7 +137,7 @@ flights = (spark.readStream \
             get_json_object(col("origin_airport"), "$.country").alias("origin_airport_country"),
             get_json_object(col("origin_airport"), "$.alt").cast("integer").alias("origin_airport_alt")
             )
-        .withColumn("day", from_unixtime("time", "yyyy-MM-dd"))
+        .withColumn("day", to_date(from_unixtime("time", "yyyy-MM-dd"), "yyyy-MM-dd"))
         .withColumn("hour", from_unixtime("time", "HH"))
         .withColumn("quarter", when(from_unixtime("time", "mm").between(0, 14), 0)
                               .when(from_unixtime("time", "mm").between(15, 29), 15)
@@ -143,8 +150,9 @@ flights = (spark.readStream \
 
 # Basic processing
 query = flights.writeStream \
-        .trigger(processingTime="5 seconds") \
-        .outputMode("update") \
-        .format("console") \
+        .outputMode("append") \
+        .partitionBy("day", "hour", "quarter") \
+        .format("parquet") \
+        .option("path", "s3a://flights-enriched/") \
         .start() \
         .awaitTermination()
