@@ -128,7 +128,7 @@ services:
     ports:
       - "30004:80"
     volumes:
-      - ./kafka-magic-conf:/config
+      - ./streaming-services/kafka-magic-conf:/config
     environment:
       KMAGIC_CONFIG_STORE_TYPE: "file"
       KMAGIC_CONFIG_STORE_CONNECTION: "Data Source=/config/KafkaMagicConfig.db;"
