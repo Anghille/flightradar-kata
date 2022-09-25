@@ -11,7 +11,7 @@ def create_spark_session():
     Return a sparkSession object with specific configuration
     such as bucket path, etc.
     """
-    SPARK_MASTER_URL = 'spark://spark:7077' # Via "/etc/hosts"
+    SPARK_MASTER_URL = 'spark://spark-master:7077' # Via "/etc/hosts"
     ETH0_IP = subprocess.check_output(["hostname", "-i"]).decode(encoding='utf-8').strip()
     ETH0_IP = re.sub(fr'\s*127.0.0.1\s*', '', ETH0_IP) # Remove alias to 127.0.0.1, if present.
     SPARK_DRIVER_HOST = ETH0_IP
@@ -31,6 +31,9 @@ def create_spark_session():
             .builder \
             .appName("Read minio to process batch data") \
             .config("spark.master", SPARK_MASTER_URL) \
+            .config("spark.executor.instances","3") \
+            .config("spark.executor.cores", "2") \
+            .config("spark.executor.memory", "4g") \
             .config("spark.driver/bindAddress", "0.0.0.0") \
             .config("spark.driver.host", SPARK_DRIVER_HOST) \
             .config("spark.sql.streaming.checkpointLocation", "s3a://spark-checkpoint/") \
@@ -41,7 +44,7 @@ def create_spark_session():
             .config("spark.hadoop.fs.s3a.secret.key", "MyStr0n8Passw04rd*") \
             .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-            .config("spark.sql.shuffle.partitions", "27")
+            .config("spark.sql.shuffle.partitions", "18") \
             .getOrCreate()
     sc = spark.sparkContext
 
