@@ -5,6 +5,7 @@ streaming-services/kafka-magic-conf/
 streaming-services/data/
 batch-app/minio-data/
 s3-storage/minio-data/
+/s3-storage
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
