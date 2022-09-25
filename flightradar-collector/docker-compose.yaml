@@ -6,7 +6,7 @@ networks:
 services:
   collector:
     container_name: collector
-    image: anghille/test
+    image: anghille/collector:0.1.0
     pull_policy: always
     restart: unless-stopped
     volumes:
