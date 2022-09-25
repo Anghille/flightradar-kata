@@ -219,9 +219,8 @@ services:
       - "30008:4040"
     volumes:
       - ./streaming-app/app:/app
-      - ./streaming-app/spark-conf/spark-defaults.conf:/bitnami/spark/conf/spark-defaults.conf
+      - ./spark/spark-defaults.conf:/bitnami/spark/conf/spark-defaults.conf
       
-
   spark-worker0:
     image: docker.io/bitnami/spark:latest
     container_name: spark_worker0
