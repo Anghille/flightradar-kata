@@ -2,6 +2,7 @@
 /collector/input/
 /streaming-app/data/
 /streaming-services/kafka-magic-conf/
+/streaming-services/data/
 /batch-app/minio-data/
 /s3-storage/minio-data/
 # Byte-compiled / optimized / DLL files
