@@ -1,8 +1,8 @@
 # Data file
-/flightradar-collector/collector/input/
-/flightradar-streaming/data/
-/flightradar-streaming/kafka-magic-conf/
-/flightradar-batch/minio-data/
+/collector/input/
+/streaming-app/data/
+/streaming-services/kafka-magic-conf/
+/batch-app/minio-data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
