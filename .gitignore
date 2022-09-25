@@ -3,7 +3,7 @@
 /streaming-app/data/
 /streaming-services/kafka-magic-conf/
 /batch-app/minio-data/
-
+/s3-storage/minio-data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

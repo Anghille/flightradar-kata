@@ -1,0 +1,35 @@
+tags: ["flightradar"]
+name: "flightradar-filebeat"
+max_procs: 4
+
+filebeat.inputs:
+  - type: filestream
+    clean_inactive: "2m"
+    clean_removed: true
+    close_timeout: "2s"
+    close_eof: true
+    close_removed: true
+    close_renamed: true
+    close_inactive: "1m"
+    encoding: "utf-8"
+    enabled: true
+    json.keys_under_root: true
+    json.add_error_key: true
+    paths:
+      - /usr/share/services/node/*.json
+
+output.kafka:
+  version: 2.6.0
+  hosts: ["broker:29092"]
+  topic: 'flights'
+  partition.round_robin:
+    reachable_only: false
+  required_acks: 1
+  compression: gzip
+  max_message_bytes: 1000000
+
+processors:
+  - drop_fields:
+      fields: ["@metadata", "tags", "input", "host", "agent", "ecs", "log"]
+      ignore_missing: true
+

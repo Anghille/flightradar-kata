@@ -1,0 +1,353 @@
+version: "3.7"
+networks:
+  kafka-logstash-spark-collector:
+    external: true
+
+services:
+  collector:
+    image: plkata/collector:0.1.0
+    container_name: collector
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - ./collector/input/:/input/
+    networks:
+      - kafka-logstash-spark-collector
+
+  cp-zookeeper:
+    image: confluentinc/cp-zookeeper
+    container_name: zookeeper
+    hostname: zookeeper
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "30000:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka-logstash-spark-collector
+
+  cp-broker:
+    image: confluentinc/cp-kafka:latest
+    container_name: broker
+    hostname: broker
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      - cp-zookeeper
+    ports:
+      - "30001:29092"
+      - "30002:9092"
+    volumes:
+      - ./streaming-services/broker-properties/server.properties:/etc/kafka/server.properties
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CREATE_TOPICS: "flights:1:1:compact"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    networks:
+      - kafka-logstash-spark-collector
+
+  init-broker:
+    image: confluentinc/cp-kafka:latest
+    container_name: init-broker
+    hostname: init
+    pull_policy: always
+    depends_on:
+      - cp-zookeeper
+      - cp-broker
+    networks:
+      - kafka-logstash-spark-collector
+    command: |
+      /bin/sh -c "
+      # Blocks until kafka gets reachable
+      kafka-topics --bootstrap-server broker:29092 --list
+      
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic flights --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic flights-enriched --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server broker:29092 --list
+
+      exit
+      "
+
+
+  cp-schema-registry:
+    image: confluentinc/cp-schema-registry
+    container_name: schema-registry
+    hostname: schema-registry
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+    - cp-zookeeper
+    - cp-broker
+    ports:
+    - "30003:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:29092"  
+    networks:
+      - kafka-logstash-spark-collector
+  
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.4.2
+    container_name: filebeat
+    pull_policy: always
+    restart: unless-stopped
+    user: root
+    depends_on:
+      - cp-zookeeper
+      - cp-broker
+    networks:
+      - kafka-logstash-spark-collector
+    environment:
+        - strict.perms=false
+    volumes:
+        - './streaming-services/filebeat-conf/filebeat.yaml:/usr/share/filebeat/filebeat.yml:ro'
+        - './streaming-services/data:/usr/share/filebeat/data:rw'
+        - './collector/input:/usr/share/services/node'
+
+  magic:
+    image: digitsy/kafka-magic
+    container_name: kafka-magic
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "30004:80"
+    volumes:
+      - ./kafka-magic-conf:/config
+    environment:
+      KMAGIC_CONFIG_STORE_TYPE: "file"
+      KMAGIC_CONFIG_STORE_CONNECTION: "Data Source=/config/KafkaMagicConfig.db;"
+      KMAGIC_CONFIG_ENCRYPTION_KEY: "iwoikg908230-2-0*(^*(@23g2)(&2h"
+      KMAGIC_ALLOW_TOPIC_DELETE: "true"
+      KMAGIC_ALLOW_SCHEMA_DELETE: "true"
+    depends_on:
+      - cp-broker
+      - cp-zookeeper
+      - cp-schema-registry
+    networks:
+      - kafka-logstash-spark-collector
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:latest
+    container_name: kafka-control-center
+    pull_policy: always
+    restart: unless-stopped
+    hostname: control-center
+    depends_on:
+      - cp-zookeeper
+      - cp-broker
+      - cp-schema-registry
+    ports:
+      - "30005:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092'
+      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+      PORT: 29021
+    networks:
+      - kafka-logstash-spark-collector
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server --console-address ":9001" /var/lib/minio-data
+    ports:
+      - 40000:9000
+      - 40001:9001
+    volumes:
+      - ./s3-storage/minio-data:/var/lib/minio-data
+    environment:
+      MINIO_ROOT_USER: minio-root
+      MINIO_ROOT_PASSWORD: MyStr0n8Passw04rd*
+    networks:
+      - kafka-logstash-spark-collector
+
+  createbuckets:
+    image: minio/mc
+    container_name: init-bucket-minio
+    networks:
+      - kafka-logstash-spark-collector
+    depends_on:
+      - minio
+    entrypoint: |
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minio-root MyStr0n8Passw04rd*;
+      /usr/bin/mc mb myminio/flights-enriched;
+      /usr/bin/mc policy set public myminio/flights-enriched;
+      /usr/bin/mc mb myminio/flights-batch;
+      /usr/bin/mc policy set public myminio/flights-batch;
+      /usr/bin/mc mb myminio/spark-checkpoint;
+      /usr/bin/mc policy set public myminio/spark-checkpoint;
+      exit 0;
+      "
+
+  spark-master:
+    image: docker.io/bitnami/spark:latest
+    container_name: spark_master
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    networks:
+      - kafka-logstash-spark-collector
+    ports:
+      - '30006:8080'
+      - '30007:7077'
+      - '30008:4040'
+    volumes:
+      - ./streaming-app/app:/app
+      - ./streaming-app/spark-conf/spark-defaults.conf:/bitnami/spark/conf/spark-defaults.conf
+      
+
+  spark-worker0:
+    image: docker.io/bitnami/spark:latest
+    container_name: spark_worker0
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=4
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    networks:
+      - kafka-logstash-spark-collector
+    ports:
+      - '30009:8081'
+    volumes:
+      - ./streaming-app/app:/app
+
+  spark-worker1:
+    image: docker.io/bitnami/spark:latest
+    container_name: spark_worker1
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    networks:
+      - kafka-logstash-spark-collector
+    ports:
+      - '30010:8081'
+    volumes:
+      - ./streaming-app/app:/app
+
+  spark-worker2:
+    image: docker.io/bitnami/spark:latest
+    container_name: spark_worker2
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    networks:
+      - kafka-logstash-spark-collector
+    ports:
+      - '30011:8081'
+    volumes:
+      - ./streaming-app/app:/app
+
+  spark-worker3:
+    image: docker.io/bitnami/spark:latest
+    container_name: spark_worker3
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    networks:
+      - kafka-logstash-spark-collector
+    ports:
+      - '30012:8081'
+    volumes:
+      - ./streaming-app/app:/app
+
+  spark-streaming-app:
+    image: docker.io/bitnami/spark:latest
+    container_name: exec-spark-streaming-app
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+      - spark-worker0
+    volumes:
+      - ./streaming-app/app:/app
+    command: ./bin/spark-submit --driver-memory 2g --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0 /app/kafka-flight-topic-consumer.py
+    user: root
+    networks:
+      - kafka-logstash-spark-collector
+    environment:
+      PYTHONPATH: /opt/bitnami/spark/python:/opt/bitnami/spark/python/lib/py4j-0.10.9.5-src.zip
+
+  spark-batch-app:
+    image: docker.io/bitnami/spark:latest
+    container_name: exec-spark-batch-app
+    pull_policy: always
+    restart: unless-stopped
+    depends_on: 
+      - spark-master
+      - spark-worker0
+      - spark-worker1
+      - spark-worker2
+      - spark-worker3
+    volumes:
+      - ./batch-app/app:/app
+    command: ./bin/spark-submit /app/minio-to-minio-batch-processing.py
+    user: root
+    networks:
+      - kafka-logstash-spark-collector
+    environment:
+      PYTHONPATH: /opt/bitnami/spark/python:/opt/bitnami/spark/python/lib/py4j-0.10.9.5-src.zip
+
