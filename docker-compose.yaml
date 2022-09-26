@@ -169,6 +169,8 @@ services:
   minio:
     image: minio/minio:latest
     container_name: minio
+    pull_policy: always
+    restart: unless-stopped
     command: server --console-address ":9001" /var/lib/minio-data
     ports:
       - 40000:9000
