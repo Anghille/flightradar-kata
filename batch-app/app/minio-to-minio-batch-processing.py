@@ -50,6 +50,33 @@ def create_spark_session():
     
     return spark, sc
 
+def q1(df):
+    """
+    What is the company with the most active flights in the world ?
+    """
+    most_active_flights_per_airlines = (df
+            .dropna(subset="airline_name")
+            .filter(col("airline_name") != "null")
+            .select("day", "airline_name", "aircraft_id")
+            .dropDuplicates()
+            .groupBy("day", "airline_name")
+            .count()
+            .orderBy(col("day").desc(), col("count").desc(), "airline_name"))
+
+    most_active_flights_per_airlines.show()
+
+def q2(df):
+    """
+    By continent, get  companies with the most regional active flights (airports of Or & Dest within the same continent) ?
+    """
+    # Missing data about the zones
+    # Must Update the collector and add zones values
+
+def q3(df):
+    """
+    World-wide, Which active flight has the longest route ?
+    """
+
 
 def main ():
     """
@@ -61,7 +88,11 @@ def main ():
 
     # Read first bucket written by the stream app, for a specific day
     df = spark.read.load("s3a://flights-enriched/").where(col("day").isin(day))
-    df.show()
+    
+    # Show the answer to each questions
+    q1(df)
+    q2(df)
 
+    
 if __name__ == "__main__":
     main()
