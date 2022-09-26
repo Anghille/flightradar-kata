@@ -47,7 +47,7 @@ def create_spark_session():
             .config("spark.sql.shuffle.partitions", "18") \
             .getOrCreate()
     sc = spark.sparkContext
-
+    
     return spark, sc
 
 
