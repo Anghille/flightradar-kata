@@ -2,4 +2,4 @@
 
 ## Cluster configuration
 
-[cluster](./cluster.png)
+![cluster](./cluster.png)
