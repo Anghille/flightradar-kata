@@ -6,7 +6,7 @@ streaming-services/data/
 batch-app/minio-data/
 s3-storage/minio-data/
 /s3-storage
-
+/postgredb
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
