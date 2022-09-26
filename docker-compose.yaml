@@ -352,3 +352,89 @@ services:
     environment:
       PYTHONPATH: /opt/bitnami/spark/python:/opt/bitnami/spark/python/lib/py4j-0.10.9.5-src.zip
 
+  postgres:
+    image: postgres:latest
+    container_name: postgre
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - "./postgredb/db_data:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_DB: metabase
+      POSTGRES_USER: metabase_usr
+      POSTGRES_PASSWORD: MyStr0n8Passw04rd* 
+    networks:
+      - kafka-logstash-spark-collector
+
+  metabase:
+    image: plkata/metabase-enterprise:0.1.0
+    container_name: metabase
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "30013:3000"
+    environment:
+      JAVA_TIMEZONE: Europe/paris
+      MB_ENCRYPTION_SECRET_KEY: IQWHOIHVhioshvwoiopw886*(v6w9Vwe89
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabase_usr
+      MB_DB_PASS: MyStr0n8Passw04rd*
+      MB_DB_HOST: postgres
+      MUID: ${UID}
+      MGID: ${GID}
+    networks:
+      - kafka-logstash-spark-collector
+    env_file: .env
+  
+  trino-coordinator:
+    image: 'trinodb/trino:397'
+    container_name: trino-coordinator
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "30014:8080"
+    volumes:
+      - ./trino/coordinator/etc:/etc/trino:ro
+    networks:
+      - kafka-logstash-spark-collector
+
+  trino-worker:
+    image: 'trinodb/trino:397'
+    container_name: trino-worker-0
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - ./trino/worker/etc:/etc/trino:ro
+    networks:
+      - kafka-logstash-spark-collector
+
+  mariadb:
+    hostname: mariadb
+    image: mariadb:10.5.8
+    ports:
+      - "30015:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_DATABASE: metastore_db
+    networks:
+      - kafka-logstash-spark-collector
+
+  hive-metastore:
+    hostname: hive-metastore
+    image: 'bitsondatadev/hive-metastore:latest'
+    ports:
+      - '30016:9083' # Metastore Thrift
+    volumes:
+      - ./trino/coordinator/etc/catalogs/metastore-site.xml:/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml:ro
+    environment:
+      METASTORE_DB_HOSTNAME: mariadb
+    depends_on:
+      - mariadb
+    networks:
+      - kafka-logstash-spark-collector
