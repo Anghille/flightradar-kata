@@ -31,6 +31,7 @@ spark = SparkSession \
         .config("spark.driver.host", SPARK_DRIVER_HOST) \
         .config("spark.sql.streaming.checkpointLocation", "s3a://spark-checkpoint/") \
         .config("spark.submit.deployMode", "client") \
+        .config("spark.sql.parquet.writeLegacyFormat", "true") \
         .config("spark.hadoop.fs.s3a.path.style.access", "true")\
         .config("fs.s3a.connection.ssl.enabled", "false") \
         .config("spark.hadoop.fs.s3a.access.key", "minio-root") \
@@ -123,33 +124,33 @@ flights = (spark.readStream \
             lower(col("airline_iata")).alias("airline_iata"),
             lower(col("airline_name")).alias("airline_name"),
         #    lower(col("callsign")).alias("callsign"),
-            col("current_lat").cast("float").alias("current_lat"),
-            col("current_lon").cast("float").alias("current_lon"),
+            col("current_lat").cast("double").alias("current_lat"),
+            col("current_lon").cast("double").alias("current_lon"),
             when(col("on_ground")==1, lit(True)).otherwise(lit(False)).alias("on_ground"),
             col("time").cast("double").alias("time"),
             get_json_object(col("destination_airport"), "$.name").alias("destination_airport_name"),
             get_json_object(col("destination_airport"), "$.iata").alias("destination_airport_iata"),
             get_json_object(col("destination_airport"), "$.icao").alias("destination_airport_icao"),
-            get_json_object(col("destination_airport"), "$.lat").cast("float").alias("destination_airport_lat"),
-            get_json_object(col("destination_airport"), "$.lon").cast("float").alias("destination_airport_lon"),
+            get_json_object(col("destination_airport"), "$.lat").cast("double").alias("destination_airport_lat"),
+            get_json_object(col("destination_airport"), "$.lon").cast("double").alias("destination_airport_lon"),
             get_json_object(col("destination_airport"), "$.country").alias("destination_airport_country"),
-            get_json_object(col("destination_airport"), "$.alt").cast("integer").alias("destination_airport_alt"),
+            get_json_object(col("destination_airport"), "$.alt").cast("long").alias("destination_airport_alt"),
             get_json_object(col("origin_airport"), "$.name").alias("origin_airport_name"),
             get_json_object(col("origin_airport"), "$.iata").alias("origin_airport_iata"),
             get_json_object(col("origin_airport"), "$.icao").alias("origin_airport_icao"),
-            get_json_object(col("origin_airport"), "$.lat").cast("float").alias("origin_airport_lat"),
-            get_json_object(col("origin_airport"), "$.lon").cast("float").alias("origin_airport_lon"),
+            get_json_object(col("origin_airport"), "$.lat").cast("double").alias("origin_airport_lat"),
+            get_json_object(col("origin_airport"), "$.lon").cast("double").alias("origin_airport_lon"),
             get_json_object(col("origin_airport"), "$.country").alias("origin_airport_country"),
-            get_json_object(col("origin_airport"), "$.alt").cast("integer").alias("origin_airport_alt")
+            get_json_object(col("origin_airport"), "$.alt").cast("long").alias("origin_airport_alt")
             )
         .withColumn("day", to_date(from_unixtime("time", "yyyy-MM-dd"), "yyyy-MM-dd"))
-        .withColumn("hour", from_unixtime("time", "HH"))
+        .withColumn("hour", from_unixtime("time", "HH").cast('long'))
         .withColumn("quarter", when(from_unixtime("time", "mm").between(0, 14), 0)
                               .when(from_unixtime("time", "mm").between(15, 29), 15)
                               .when(from_unixtime("time", "mm").between(30, 44), 30)
                               .when(from_unixtime("time", "mm").between(45, 59), 45)
-                              .otherwise(lit(None)))
-        .withColumn("minute", from_unixtime("time", "mm"))
+                              .otherwise(lit(None).cast("long")))
+        .withColumn("minute", from_unixtime("time", "mm").cast("long"))
         )
 
 

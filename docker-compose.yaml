@@ -5,7 +5,7 @@ networks:
 
 services:
   collector:
-    image: plkata/collector:0.1.0
+    build: ./collector/
     container_name: collector
     pull_policy: always
     restart: unless-stopped
@@ -76,15 +76,12 @@ services:
       
       echo -e 'Creating kafka topics'
       kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic flights --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic flights-enriched --replication-factor 1 --partitions 1
 
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server broker:29092 --list
 
       exit
       "
-
-
   cp-schema-registry:
     image: confluentinc/cp-schema-registry
     container_name: schema-registry
@@ -178,8 +175,10 @@ services:
     volumes:
       - ./s3-storage/minio-data:/var/lib/minio-data
     environment:
-      MINIO_ROOT_USER: minio-root
-      MINIO_ROOT_PASSWORD: MyStr0n8Passw04rd*
+      MINIO_ACCESS_KEY: "minio-root"
+      MINIO_SECRET_KEY: "MyStr0n8Passw04rd*"
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+      MINIO_PROMETHEUS_URL: "http://prometheus:9090"
     networks:
       - kafka-logstash-spark-collector
 
@@ -358,7 +357,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     volumes:
-      - "./postgredb/db_data:/var/lib/postgresql/data"
+      - "./postgredb/metabase/db_data:/var/lib/postgresql/data"
     environment:
       POSTGRES_DB: metabase
       POSTGRES_USER: metabase_usr
@@ -367,7 +366,7 @@ services:
       - kafka-logstash-spark-collector
 
   metabase:
-    image: plkata/metabase-enterprise:0.1.0
+    build: ./metabase-plugins/
     container_name: metabase
     pull_policy: always
     restart: unless-stopped
@@ -399,6 +398,7 @@ services:
       - "30014:8080"
     volumes:
       - ./trino/coordinator/etc:/etc/trino:ro
+      - ./trino/coordinator/etc/metastore/metastore-site.xml:/etc/metastore-site.xml
     networks:
       - kafka-logstash-spark-collector
 
@@ -409,32 +409,44 @@ services:
     restart: unless-stopped
     volumes:
       - ./trino/worker/etc:/etc/trino:ro
+      - ./trino/coordinator/etc/metastore/metastore-site.xml:/etc/metastore-site.xml
     networks:
       - kafka-logstash-spark-collector
 
-  mariadb:
-    hostname: mariadb
-    image: mariadb:10.5.8
-    ports:
-      - "30015:3306"
+  postgre-metastore:
+    image: postgres:latest
+    container_name: postgre-metastore
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - "./postgredb/metastore/db_data:/var/lib/postgresql/data"
     environment:
-      MYSQL_ROOT_PASSWORD: admin
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin
-      MYSQL_DATABASE: metastore_db
+      POSTGRES_DB: metastore
+      POSTGRES_USER: metastore
+      POSTGRES_PASSWORD: MyStr0n8Passw04rd* 
     networks:
       - kafka-logstash-spark-collector
 
   hive-metastore:
     hostname: hive-metastore
-    image: 'bitsondatadev/hive-metastore:latest'
+    image: 'naushadh/hive-metastore'
+    container_name: hive-metastore
+    pull_policy: always
+    restart: unless-stopped
     ports:
       - '30016:9083' # Metastore Thrift
-    volumes:
-      - ./trino/coordinator/etc/catalogs/metastore-site.xml:/opt/apache-hive-metastore-3.0.0-bin/conf/metastore-site.xml:ro
     environment:
-      METASTORE_DB_HOSTNAME: mariadb
+      DATABASE_HOST: postgre-metastore
+      DATABASE_DB: metastore
+      DATABASE_USER: metastore
+      DATABASE_PASSWORD: MyStr0n8Passw04rd*
+      S3_ENDPOINT_URL: minio:9000
+      S3_BUCKET: warehouse
+      S3_PREFIX: metastore
+      AWS_ACCESS_KEY_ID: minio-root
+      AWS_SECRET_ACCESS_KEY: MyStr0n8Passw04rd*
     depends_on:
-      - mariadb
+      - postgre-metastore
     networks:
       - kafka-logstash-spark-collector
+

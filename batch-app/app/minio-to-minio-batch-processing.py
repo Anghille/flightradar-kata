@@ -1,6 +1,7 @@
 import os, subprocess, re
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
+from pyspark.sql.functions import max as smax, sum as ssum, pow as spow
 from pyspark.sql.types import *
 
 from datetime import datetime, timedelta
@@ -50,6 +51,15 @@ def create_spark_session():
     
     return spark, sc
 
+def haversine_distance(lat1, lat2, lon1, lon2):
+    """
+    Compute the haversine distance between two point 
+    in the WGS84 coordinate system
+
+    Only use spark function to avoid using UDF 
+    """
+    return 2*6378*asin(sqrt(spow(sin((lat2-lat1)/2),2) + cos(lat1)*cos(lat2)*spow(sin((lon2-lon1)/2),2)))
+
 def q1(df):
     """
     What is the company with the most active flights in the world ?
@@ -75,8 +85,21 @@ def q2(df):
 def q3(df):
     """
     World-wide, Which active flight has the longest route ?
+
+    using the Haversine formula to determine the distance between 2 points
+    based on latitude and longitude
     """
 
+    final = (
+        df.withColumn("distance", haversine_distance(col("origin_airport_lat"), 
+                                                     col("destination_airport_lat"), 
+                                                     col("origin_airport_lon"), 
+                                                     col("destination_airport_lon")))
+        .groupBy("day", "aircraft_id", "origin_airport_name", "destination_airport_name")
+        .agg(smax(col("distance")).alias("distance"))
+        .orderBy(col("distance").desc())
+        )
+    final.show()
 
 def main ():
     """
@@ -92,7 +115,7 @@ def main ():
     # Show the answer to each questions
     q1(df)
     q2(df)
-
+    q3(df)
     
 if __name__ == "__main__":
     main()
